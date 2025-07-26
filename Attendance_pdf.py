@@ -43,7 +43,7 @@ class RotatedText(Flowable):
         self.canv.restoreState()
 
 # ===== CONFIG =====
-excel_path = r"C:\Users\Daksh\OneDrive\Desktop\MYFiles\Attendance_sheet\Generated_Verification_By_Center.xlsx"
+excel_path = r"C:\Users\Daksh\OneDrive\Desktop\MYFiles\Verification_list\Generated_Verification_By_Center.xlsx"
 output_dir = r"C:\Users\Daksh\OneDrive\Desktop\MYFiles\Attendance_sheet\PDF_Centers"
 os.makedirs(output_dir, exist_ok=True)
 
