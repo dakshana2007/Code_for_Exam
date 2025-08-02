@@ -1,7 +1,7 @@
 import os
 import pandas as pd
 from openpyxl import load_workbook
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Flowable
+from reportlab.platypus import BaseDocTemplate, Frame, PageTemplate, Table, TableStyle, Paragraph, Flowable
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import inch
 from reportlab.lib import colors
@@ -17,7 +17,7 @@ class RotatedText(Flowable):
         self.height = height
         self.fontName = fontName
         self.fontSize = fontSize
-        self.wrap_text = wrap_text  # renamed to avoid conflict
+        self.wrap_text = wrap_text
 
     def wrap(self, availWidth, availHeight):
         return self.width, self.height
@@ -25,21 +25,15 @@ class RotatedText(Flowable):
     def draw(self):
         self.canv.saveState()
         self.canv.setFont(self.fontName, self.fontSize)
-
-        # Rotate anticlockwise 90°
         self.canv.rotate(90)
         self.canv.translate(0, -self.width + 2)
-
         if self.wrap_text:
-            # Word-by-word stacking
             words = self.text.split()
             line_spacing = self.fontSize + 1
             for i, word in enumerate(words):
                 self.canv.drawCentredString(self.height / 2, -i * line_spacing, word)
         else:
-            # Single line, no wrap
             self.canv.drawCentredString(self.height / 2, -self.width + 10, self.text)
-
         self.canv.restoreState()
 
 # ===== CONFIG =====
@@ -64,51 +58,44 @@ for sheet_name in sheet_names:
 
     # === Table Headers ===
     headers = [
-    RotatedText("Room No", width=15, height=50, fontSize=10, wrap_text=False),
-    RotatedText("Seat No", width=15, height=50, fontSize=10, wrap_text=False),
-    Paragraph("<b>Dakshana Roll No -- Name</b>", ParagraphStyle(name="no_wrap", fontSize=10, alignment=TA_CENTER, wordWrap='CJK')),
-    RotatedText("Gender", width=15, height=50, fontSize=10, wrap_text=False),
-    RotatedText("Applied for (Engg/Med)", width=15, height=80, fontSize=10, wrap_text=True),
-    Paragraph("<b>Signature</b>", style_center)
- ]
-
+        RotatedText("Room No", width=15, height=50, fontSize=10, wrap_text=False),
+        RotatedText("Seat No", width=15, height=50, fontSize=10, wrap_text=False),
+        Paragraph("<b>Dakshana Roll No -- Name</b>", ParagraphStyle(name="no_wrap", fontSize=10, alignment=TA_CENTER, wordWrap='CJK')),
+        RotatedText("Gender", width=15, height=50, fontSize=10, wrap_text=False),
+        RotatedText("Applied for (Engg/Med)", width=15, height=80, fontSize=10, wrap_text=True),
+        Paragraph("<b>Signature</b>", style_center)
+    ]
 
     # === Table Body ===
     table_data = [headers]
     for row in df.itertuples(index=False):
         table_data.append([
-            str(row[0]),                                 # Room No
-            str(row[1]),                                 # Seat No
-            str(row[2]),          # Name
-            str(row[3]),                                 # Gender
-            str(row[4]) if pd.notna(row[4]) else "",                                 # Applied
-            str(row[5]) if pd.notna(row[5]) else ""      # Remark
+            str(row[0]),
+            str(row[1]),
+            str(row[2]),
+            str(row[3]),
+            str(row[4]) if pd.notna(row[4]) else "",
+            str(row[5]) if pd.notna(row[5]) else ""
         ])
 
-    # Column widths (tuned for rotated text)
+    # === Table Setup ===
     col_widths = [35, 35, 255, 35, 60, 70]
-
     table = Table(table_data, colWidths=col_widths, repeatRows=1)
     table.setStyle(TableStyle([
-        # Grid and font
         ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
         ('FONTSIZE', (0, 0), (-1, -1), 8),
         ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
-
-        # Content alignment
         ('ALIGN', (0, 1), (1, -1), 'CENTER'),
         ('ALIGN', (3, 1), (-1, -1), 'CENTER'),
         ('ALIGN', (2, 1), (2, -1), 'LEFT'),
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-
-        # Header formatting
         ('TOPPADDING', (0, 0), (-1, 0), 8),
         ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
     ]))
 
-    # Output PDF
+    # === PDF Output ===
     output_pdf = os.path.join(output_dir, f"{sheet_name}.pdf")
-    doc = SimpleDocTemplate(
+    doc = BaseDocTemplate(
         output_pdf,
         pagesize=A4,
         leftMargin=0.3 * inch,
@@ -117,25 +104,39 @@ for sheet_name in sheet_names:
         bottomMargin=0.3 * inch,
     )
 
-    # Build document
-    elements = [
-        Paragraph(
-    f"<b>Center Sheet: {sheet_name}</b>",
-    ParagraphStyle(
-        name="no_wrap_heading",
-        parent=styles['Heading3'],
-        fontSize=12,
-        leading=14,
-        alignment=TA_LEFT,
-        spaceAfter=12,
-        leftIndent=23,
-        wordWrap='CJK'  # Remove left indent
+    # Reserve space for header box
+    header_box_height = 40
+
+    # Create frame for table
+    frame = Frame(
+        doc.leftMargin,
+        doc.bottomMargin,
+        doc.width,
+        doc.height - header_box_height,
+        id='normal'
     )
-),
-        Spacer(1, 12),
-        table
-    ]
+
+    # === Header Drawing Function (Canvas) ===
+    def draw_page_header(canvas, doc):
+        canvas.saveState()
+        canvas.setFont("Helvetica-Bold", 14)
+        canvas.setFillColor(colors.black)
+
+    # Always center horizontally
+        x_center = A4[0] / 2
+
+    # Always fixed from top of the A4 page (use absolute position)
+        y_fixed = A4[1] - 40  # 40 points from the top edge
+
+        canvas.drawCentredString(x_center, y_fixed, f"Attendance Sheet: {sheet_name}")
+        canvas.restoreState() 
+    # Apply the page template
+    template = PageTemplate(id='AttendancePage', frames=[frame], onPage=draw_page_header)
+    doc.addPageTemplates([template])
+
+    # Build document
+    elements = [table]
     doc.build(elements)
     print(f"✅ Saved: {output_pdf}")
 
-print("\n🎯 All PDFs created successfully with corrected rotated headers.")
+print("\n🎯 All PDFs created successfully with centered headers inside boxes on every page.")
