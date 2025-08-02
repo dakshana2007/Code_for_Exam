@@ -2,6 +2,8 @@ import pandas as pd
 import math
 import xlsxwriter
 import os
+from win32com.client import DispatchBaseClass
+excel = DispatchBaseClass("Excel.Application")  # ✅ Fixed: Use Dispatch instead of EnsureDispatch
 
 # --- CONFIG ---
 input_file = r'C:\Users\Daksh\OneDrive\Desktop\MYFiles\Data_For_all\Data_Student.xlsx'
@@ -138,28 +140,30 @@ finally:
     workbook.close()
     print(f"✅ Seat allotment saved to: {output_file}")
 
-# --- EXPORT EACH SHEET TO PDF (One PDF per center) ---
+
 # --- EXPORT EACH SHEET TO PDF (One PDF per center) ---
 import win32com.client as win32
-
-excel = win32.gencache.EnsureDispatch('Excel.Application')
+excel = win32.Dispatch("Excel.Application")
 excel.Visible = False
 
-wb = excel.Workbooks.Open(output_file)
+try:
+    wb = excel.Workbooks.Open(output_file)
 
-for sheet in wb.Sheets:
-    sheet.PageSetup.Orientation = 2  # Landscape
-    sheet.PageSetup.Zoom = False
-    sheet.PageSetup.FitToPagesWide = 1
-    sheet.PageSetup.FitToPagesTall = False
-    sheet.PageSetup.CenterHorizontally = True
-    sheet.PageSetup.CenterVertically = True
-    sheet.PageSetup.TopMargin = excel.InchesToPoints(0.3)  # ← ADD THIS LINE
+    for sheet in wb.Sheets:
+        sheet.PageSetup.Orientation = 2  # Landscape
+        sheet.PageSetup.Zoom = False
+        sheet.PageSetup.FitToPagesWide = 1
+        sheet.PageSetup.FitToPagesTall = False
+        sheet.PageSetup.CenterHorizontally = True
+        sheet.PageSetup.CenterVertically = True
+        sheet.PageSetup.TopMargin = excel.InchesToPoints(0.3)
 
-    center_number = sheet.Name
-    pdf_path = os.path.join(os.path.dirname(output_file), f"{center_number}.pdf")
-    sheet.ExportAsFixedFormat(0, pdf_path)
+        center_number = sheet.Name
+        pdf_path = os.path.join(os.path.dirname(output_file), f"{center_number}.pdf")
+        sheet.ExportAsFixedFormat(0, pdf_path)
+        print(f"✅ PDF exported for center: {center_number} at {pdf_path}")
 
-wb.Close(SaveChanges=False)
-excel.Quit()
+    wb.Close(SaveChanges=False)
 
+finally:
+    excel.Quit()
