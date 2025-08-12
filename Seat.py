@@ -34,45 +34,45 @@ title_format = workbook.add_format({
 
 row_number_header_format = workbook.add_format({
     'bold': True, 'align': 'center', 'valign': 'vcenter',
-    'border': 2,  'font_size': 12,
+    'border': 1,  'font_size': 12,
 })
 
 grid_format = workbook.add_format({
-    'align': 'left', 'valign': 'vcenter', 'border': 2, 'indent': 1, 'text_wrap': True
+    'align': 'left', 'valign': 'vcenter', 'border': 1, 'indent': 1, 'text_wrap': True
 })
 
 blank_format = workbook.add_format({
     'italic': True, 'align': 'center', 'valign': 'vcenter',
-    'border': 2, 'font_color': 'gray',  'font_size': 16,
+    'border': 1, 'font_color': 'gray',  'font_size': 16,
 })
 
 side_header_format = workbook.add_format({
     'bold': True, 'align': 'center', 'valign': 'vcenter',
-    'border': 2, 'rotation': 90,  'font_size': 16,
+    'border': 1, 'rotation': 90,  'font_size': 16,
 })
 
 row_header_format = workbook.add_format({
     'bold': True, 'align': 'center', 'valign': 'vcenter',
-    'border': 2,  'font_size': 16,
+    'border': 1,  'font_size': 16,
 })
 
 column_number_format = workbook.add_format({
     'bold': True, 'align': 'center', 'valign': 'vcenter',
-    'border': 2,  'font_size': 12,
+    'border': 1,  'font_size': 12,
 })
 header_label_format = workbook.add_format({
     'bold': True, 'align': 'center', 'valign': 'vcenter',
-    'font_size': 16, 'border': 2
+    'font_size': 16, 'border': 1
 })
 
 header_number_format = workbook.add_format({
     'bold': True, 'align': 'center', 'valign': 'vcenter',
-    'font_size': 12, 'border': 2
+    'font_size': 12, 'border': 1
 })
 
 side_header_label_format = workbook.add_format({
     'bold': True, 'align': 'center', 'valign': 'vcenter',
-    'font_size': 16, 'border': 2, 'rotation': 90
+    'font_size': 16, 'border': 1, 'rotation': 90
 })
 
 try:
