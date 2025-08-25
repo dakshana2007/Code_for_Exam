@@ -1,55 +1,39 @@
 import os
-import pandas as pd
+import re
+import pdfplumber
 
-# === Step 1: Set file paths ===
-excel_file = r'C:\Users\Daksh\OneDrive\Desktop\MYFiles\Re_Admit\Rename_admit.xlsx'
-pdf_folder = r'C:\Users\Daksh\OneDrive\Desktop\MYFiles\Re_Admit\Admit_card'
-column_name = 'NewName'  # Name of the column in Excel
+folder_path = r"C:\Users\Daksh\OneDrive\Desktop\Rehearsal DST\Admit card\Admit"
 
-# === Step 2: Load Excel ===
-try:
-    df = pd.read_excel(excel_file)
-except FileNotFoundError:
-    print(f"Excel file not found at: {excel_file}")
-    exit()
+for filename in os.listdir(folder_path):
+    if filename.endswith('.pdf'):
+        file_path = os.path.join(folder_path, filename)
+        roll_number = None  # Reset per file
 
-# === Step 3: Clean names ===
-new_names = df[column_name].astype(str).str.strip().tolist()
+        try:
+            with pdfplumber.open(file_path) as pdf:
+                first_page = pdf.pages[0]
+                words = first_page.extract_words()
 
-# === Step 4: Load PDF files sorted by creation time ===
-try:
-    pdf_files = sorted(
-        [f for f in os.listdir(pdf_folder) if f.lower().endswith('.pdf')],
-        key=lambda x: os.path.getctime(os.path.join(pdf_folder, x))
-    )
-except FileNotFoundError:
-    print(f"PDF folder not found at: {pdf_folder}")
-    exit()
+                for i, word in enumerate(words):
+                    if "Dakshana" in word['text']:
+                        for j in range(i + 1, min(i + 4, len(words))):
+                            if re.match(r'\d{11}', words[j]['text']):
+                                roll_number = words[j]['text']
+                                break
+                    if roll_number:
+                        break
 
-# === Step 5: Check file count ===
-if len(pdf_files) != len(new_names):
-    print(f"Mismatch: {len(pdf_files)} PDFs ≠ {len(new_names)} names in Excel.")
-    exit()
+            # ✅ Now the PDF is closed — it's safe to rename
+            if roll_number:
+                new_file_path = os.path.join(folder_path, roll_number + '.pdf')
 
-# === Step 6: Rename files safely ===
-for old_file, new_name in zip(pdf_files, new_names):
-    old_path = os.path.join(pdf_folder, old_file)
-    new_path = os.path.join(pdf_folder, new_name + '.pdf')
+                if not os.path.exists(new_file_path):
+                    os.rename(file_path, new_file_path)
+                    print(f'✅ Renamed: {filename} → {roll_number}.pdf')
+                else:
+                    print(f'⚠️ Skipped: {roll_number}.pdf already exists.')
+            else:
+                print(f'❌ Roll number not found in {filename}')
 
-    # Skip if already renamed correctly
-    if old_file == new_name + '.pdf':
-        print(f"⏭️ Already renamed: {old_file}")
-        continue
-
-    # Skip renaming if target already exists to avoid overwriting
-    if os.path.exists(new_path):
-        print(f"⚠️ Skipping (duplicate exists): {new_name}.pdf")
-        continue
-
-    try:
-        os.rename(old_path, new_path)
-        print(f"✅ Renamed: {old_file} → {new_name}.pdf")
-    except Exception as e:
-        print(f"❌ Error renaming {old_file}: {e}")
-
-print("\n🎉 Renaming completed without deleting any file.")
+        except Exception as e:
+            print(f'⚠️ Error reading {filename}: {e}')
